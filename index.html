@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Web Answer Assistant – One-Click</title>
+<style>
+:root{color-scheme:light dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}body{margin:0;background:#101827;color:#eef2f8;padding:18px}
+main{max-width:760px;margin:auto}.top{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.mark{width:38px;height:38px;border-radius:12px;background:#2563eb;display:grid;place-items:center;font-weight:800}
+h1{font-size:20px;margin:0} .sub{color:#aab6c8;font-size:13px;margin-top:3px}
+.panel{background:#1b293b;border:1px solid #34445a;border-radius:16px;padding:16px;margin:12px 0}
+label{display:block;font-weight:650;margin-bottom:8px}
+textarea{width:100%;min-height:160px;resize:vertical;border:1px solid #53647a;border-radius:10px;background:#101b2a;color:#fff;padding:12px;font:inherit;line-height:1.5}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+button{border:0;border-radius:10px;padding:10px 15px;font:600 14px system-ui;cursor:pointer}
+.primary{background:#3b82f6;color:white}.secondary{background:#334155;color:#fff}
+button:disabled{opacity:.5;cursor:wait}
+#answer{white-space:pre-wrap;line-height:1.65;min-height:60px}
+.status{font-size:13px;color:#aab6c8;margin-top:9px}.error{color:#fca5a5}
+.small{font-size:12px;color:#aab6c8}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><div class="mark">A</div><div><h1>Web Answer Assistant</h1><div class="sub">One-Click • วิเคราะห์ข้อความที่เลือกจากหน้าเว็บไซต์</div></div></div>
+  <section class="panel">
+    <label for="question">ข้อความโจทย์และตัวเลือก</label>
+    <textarea id="question" placeholder="เลือกข้อความบนเว็บไซต์ แล้วกดปุ่ม One-Click ที่แถบบุ๊กมาร์ก..."></textarea>
+    <div class="actions">
+      <button class="primary" id="go">วิเคราะห์คำตอบ</button>
+      <button class="secondary" id="paste">วางจากคลิปบอร์ด</button>
+      <button class="secondary" id="clear">ล้างข้อความ</button>
+    </div>
+    <div class="status" id="status">พร้อมใช้งาน</div>
+  </section>
+  <section class="panel">
+    <label>ผลการวิเคราะห์</label>
+    <div id="answer">คำตอบจะแสดงที่นี่</div>
+    <div class="actions"><button class="secondary" id="copy">คัดลอกคำตอบ</button></div>
+  </section>
+  <div class="small">ใช้เพื่อการเรียนรู้และตรวจสอบความเข้าใจ ควรพิจารณาเหตุผลและตรวจสอบกับแหล่งข้อมูลที่เชื่อถือได้</div>
+</main>
+<script>
+const q=document.getElementById('question'), answer=document.getElementById('answer'), status=document.getElementById('status'), go=document.getElementById('go');
+const params=new URLSearchParams(location.hash.slice(1));
+if(params.has('q')) { q.value=params.get('q'); history.replaceState(null,'',location.pathname+location.search); }
+async function analyze(){
+ const question=q.value.trim(); if(!question){status.textContent='กรุณาใส่ข้อความโจทย์ก่อน';return;}
+ go.disabled=true;go.textContent='กำลังวิเคราะห์...';status.textContent='กำลังส่งข้อความไปวิเคราะห์';answer.textContent='โปรดรอสักครู่...';answer.classList.remove('error');
+ try{
+  const r=await fetch('/api/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question})});
+  const data=await r.json(); if(!r.ok) throw new Error(data.error||'เกิดข้อผิดพลาด');
+  answer.textContent=data.answer;status.textContent='วิเคราะห์เสร็จแล้ว';
+ }catch(e){answer.textContent=e.message;answer.classList.add('error');status.textContent='ไม่สามารถวิเคราะห์ได้';}
+ finally{go.disabled=false;go.textContent='วิเคราะห์คำตอบ';}
+}
+go.addEventListener('click',analyze);
+document.getElementById('paste').addEventListener('click',async()=>{try{q.value=await navigator.clipboard.readText();status.textContent='วางข้อความแล้ว';}catch(e){status.textContent='ไม่สามารถอ่านคลิปบอร์ดได้ กรุณากด Ctrl+V';q.focus();}});
+document.getElementById('clear').addEventListener('click',()=>{q.value='';answer.textContent='คำตอบจะแสดงที่นี่';status.textContent='ล้างข้อความแล้ว';});
+document.getElementById('copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(answer.textContent);status.textContent='คัดลอกคำตอบแล้ว';}catch(e){status.textContent='คัดลอกไม่สำเร็จ กรุณาเลือกข้อความแล้วกด Ctrl+C';}});
+q.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')analyze();});
+</script>
+</body></html>

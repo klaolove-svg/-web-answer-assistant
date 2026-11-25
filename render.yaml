@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: web-answer-assistant
+    runtime: python
+    plan: free
+    buildCommand: "echo 'No third-party packages required'"
+    startCommand: "python server.py"
+    healthCheckPath: /health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
